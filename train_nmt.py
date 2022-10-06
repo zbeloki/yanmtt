@@ -65,6 +65,8 @@ from rouge_score import rouge_scorer
 import gc
 import functools
 from prefetch_generator import BackgroundGenerator
+from m2scorer import get_m2score  # for GEC task we'll use M2 score instead of BLEU
+import pdb
 ##
 
 ## Seed setting here
@@ -404,6 +406,8 @@ def model_create_load_run_save(gpu, args, train_files, dev_files):
         refs = [[dev_pair, [[refline.strip() for refline in open(dev_pair_info[1])][:args.max_eval_batches*args.dev_batch_size]]] for dev_pair, dev_pair_info in dev_files] ## Get all references for each input. Select up to args.max_eval_batches*args.dev_batch_size examples.
     else:
         refs = [[dev_pair, [[refline.strip() for refline in open(dev_pair_info[1])][:args.max_eval_batches*args.dev_batch_size]]] for dev_pair, dev_pair_info in dev_files] ## Get all references for each input. Select up to args.max_eval_batches*args.dev_batch_size examples.
+    if args.use_m2:
+        ref_srcs = [[dev_pair, [[refline.strip() for refline in open(dev_pair_info[0])][:args.max_eval_batches*args.dev_batch_size]]] for dev_pair, dev_pair_info in dev_files] ## Get all references for each input. Select up to args.max_eval_batches*args.dev_batch_size examples.
     
     start = time.time()
     
@@ -466,6 +470,14 @@ def model_create_load_run_save(gpu, args, train_files, dev_files):
                             sbleu = scores/len(hyp[dev_idx][1])
                             metric = 'Rouge'
                             scorertool = 'RougeScorer'
+                        elif args.use_m2: ## M2score for Grammatical Error Correction task
+                            gold_srcs = ref_srcs[dev_idx][1][0]
+                            gold_refs = refs[dev_idx][1][0]
+                            preds = hyp[dev_idx][1]
+                            p, r, f = get_m2score(preds, gold_srcs, gold_refs)
+                            sbleu = f
+                            metric = 'M2'
+                            scorertool = 'M2Scorer'
                         else:
                             sbleu = get_sacrebleu(refs[dev_idx][1], hyp[dev_idx][1])
                             metric = 'BLEU'
@@ -1002,6 +1014,8 @@ def run_demo():
                         help='Should we perform a hard truncation of the batch? This will be needed to eliminate cuda caching errors for when sequence lengths exceed a particular limit. This means self attention matrices will be massive and I used to get errors. Choose this value empirically.')
     parser.add_argument('--use_rouge', action='store_true', 
                         help='Should we use ROUGE for evaluation?')
+    parser.add_argument('--use_m2', action='store_true', 
+                        help='Should we use M2 score for evaluation?')
     parser.add_argument('--max_ent_weight', type=float, default=-1.0, 
                         help='Should we maximize softmax entropy? If the value is anything between 0 and 1 then yes. If its -1.0 then no maximization will be done.')
     parser.add_argument('--ewc_importance', type=float, default=0.0, 
