@@ -1,3 +1,5 @@
+This fork adds M2 as a metric for GEC task. Use the argument --use_m2 to enable.
+
 # YANMTT
 
 <!--
