@@ -65,7 +65,7 @@ from rouge_score import rouge_scorer
 import gc
 import functools
 from prefetch_generator import BackgroundGenerator
-from m2scorer import get_m2score  # for GEC task we'll use M2 score instead of BLEU
+from m2scorer import get_m2score_from_raw  # for GEC task we'll use M2 score instead of BLEU
 import pdb
 ##
 
@@ -474,7 +474,7 @@ def model_create_load_run_save(gpu, args, train_files, dev_files):
                             gold_srcs = ref_srcs[dev_idx][1][0]
                             gold_refs = refs[dev_idx][1][0]
                             preds = hyp[dev_idx][1]
-                            p, r, f = get_m2score(preds, gold_srcs, gold_refs)
+                            p, r, f = get_m2score_from_raw(preds, gold_srcs, gold_refs, tokenize=True)
                             sbleu = f
                             metric = 'M2'
                             scorertool = 'M2Scorer'
